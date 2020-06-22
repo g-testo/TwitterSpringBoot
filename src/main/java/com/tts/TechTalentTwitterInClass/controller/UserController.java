@@ -37,15 +37,52 @@ public class UserController {
         }
         model.addAttribute("tweetCounts", tweetCounts);
     }
+    
+    private void setFollowingStatus(List<User> users, List<User> usersFollowing, Model model) {
+        HashMap<String,Boolean> followingStatus = new HashMap<>();
+        String username = userService.getLoggedInUser().getUsername();
+//      followingStatus:
+//      {
+//      	"sstark": true,
+//      	"anotherUser": false,
+//      	"anothernotherUser": true
+//      }
+        for (User user : users) {
+            if(usersFollowing.contains(user)) {
+                followingStatus.put(user.getUsername(), true);
+            }else if (!user.getUsername().equals(username)) {
+                followingStatus.put(user.getUsername(), false);
+        	}
+        }
+        
+        model.addAttribute("followingStatus", followingStatus);
+    }
+
+    
 
     
     
     @GetMapping("/users/{username}")
 	public String displayUser(@PathVariable String username, Model model) {
+    	
 	    User user = userService.findByUsername(username);
 	    List<Tweet> tweets = tweetService.findAllByUser(user);
 	    model.addAttribute("tweetList", tweets);
 	    model.addAttribute("user", user);
+	    
+	    User loggedInUser = userService.getLoggedInUser();
+	    List<User> following = loggedInUser.getFollowing();
+	    boolean isFollowing = false;
+	    for (User followedUser : following) {
+	        if (followedUser.getUsername().equals(username)) {
+	            isFollowing = true;
+	        }
+	    }
+	    model.addAttribute("following", isFollowing);
+
+	    boolean isSelfPage = loggedInUser.getUsername().equals(username);
+	    model.addAttribute("isSelfPage", isSelfPage);
+
 	    return "user";
 	}
     
@@ -54,6 +91,14 @@ public class UserController {
         List<User> users = userService.findAll();
         model.addAttribute("users", users);
         setTweetCounts(users, model);
+        
+        User loggedInUser = userService.getLoggedInUser();
+        List<User> usersFollowing = loggedInUser.getFollowing();
+        setFollowingStatus(users, usersFollowing, model);
+
+        
+        
+        
         return "users";
     }
 
